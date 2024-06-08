@@ -1,0 +1,3 @@
+/media/koen/PortableSSD/GitHub/6School/AudioRecorder/ui/build/CMakeFiles/ui.dir
+/media/koen/PortableSSD/GitHub/6School/AudioRecorder/ui/build/CMakeFiles/edit_cache.dir
+/media/koen/PortableSSD/GitHub/6School/AudioRecorder/ui/build/CMakeFiles/rebuild_cache.dir

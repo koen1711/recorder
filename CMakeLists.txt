@@ -1,0 +1,54 @@
+cmake_minimum_required(VERSION 3.28)
+project(AudioRecorder)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# Add subdirectories
+add_subdirectory(libs/json)
+add_subdirectory(ui)
+
+# If libuv is not found automatically, specify its include and library directories
+set(LIBUV_LIBRARY /lib/x86_64-linux-gnu/libuv_a.a)
+
+# Specify the path to uSockets.a
+set(USOCKETS_LIB_PATH /usr/local/lib/uSockets.a)
+
+# Find PulseAudio package
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PULSEAUDIO REQUIRED libpulse)
+
+# Add the executable
+add_executable(${PROJECT_NAME}
+        src/main.cpp
+        include/miniaudio.h
+        src/recording/baseRecorder.h
+        src/recording/audio/audioRecorder.cpp
+        src/recording/audio/audioRecorder.h
+        src/dashboard/dashboard.cpp
+        src/dashboard/dashboard.h
+        src/dashboard/cpu/CpuInfo.h
+        src/recording/recorders.h
+        src/dashboard/app.h
+)
+
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE
+        include
+        libs/json/include
+        ${PULSEAUDIO_INCLUDE_DIRS}
+)
+
+# Link against required libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC
+        nlohmann_json::nlohmann_json
+        ${LIBUV_LIBRARY}
+        ${USOCKETS_LIB_PATH}
+        pthread
+        ${PULSEAUDIO_LIBRARIES}
+        z
+        m
+        dl
+)
+
+# Add dependency on ui target
+add_dependencies(${PROJECT_NAME} ui)
