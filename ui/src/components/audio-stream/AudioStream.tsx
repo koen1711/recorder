@@ -1,24 +1,41 @@
 import React from 'react';
-import {Accordion, AccordionBody, AccordionHeader, Card} from "@tremor/react";
-import {RecorderContext} from "../../providers/RecorderProvider.tsx";
-import { JSX } from 'react/jsx-runtime';
+import { Accordion, AccordionBody, AccordionHeader } from "@tremor/react";
 import Channel from "./Channel.tsx";
-
-export type AudioStats = {
-    timestamp: number;
-    volumeLevel: [number]
-};
+import {RecorderContext} from "../../providers/RecorderProvider.tsx";
 
 export function AudioStream() {
-    const [,,,, channelInfo] = React.useContext(RecorderContext);
-    const [audioChannels, setChannels] = React.useState([]);
     let selectedChannel = -1;
+    let curAudioElement = null;
+    const [, , , , channelInfo] = React.useContext(RecorderContext);
+    const [audioChannels, setChannels] = React.useState([]);
 
-    function onChannelClick(channel: number, selected: boolean) {
+    async function onChannelClick(channel: {index: number}, selected: boolean) {
         if (selected && selectedChannel == -1) {
-            selectedChannel = channel;
+            selectedChannel = channel.index;
+            //playAudioStream();
+            console.log("Playing audio stream");
+            curAudioElement = document.createElement("audio");
+            curAudioElement.onerror = () => {
+                selectedChannel = -1;
+                curAudioElement = null;
+            };
+            // only return true when the audio stream starts playing
+            curAudioElement.src = `/audiostream?channel=${selectedChannel}`;
+            await curAudioElement.play();
+            if (curAudioElement.error) {
+                selectedChannel = -1;
+                curAudioElement = null;
+                return false;
+            }
             return true;
-        } else if (!selected && selectedChannel == channel) {
+        } else if (!selected && selectedChannel == channel.index) {
+            console.log("Stopping audio stream");
+            // delete the audio element
+            // @ts-ignore
+            curAudioElement.pause();
+            // @ts-ignore
+            curAudioElement.remove();
+            curAudioElement = null;
             selectedChannel = -1;
             return true;
         }
@@ -27,14 +44,12 @@ export function AudioStream() {
 
 
     React.useEffect(() => {
-        // remove all channels
-        const channels: JSX.Element[] = [];
-        for (let i = 0; i < channelInfo.channels.length; i++) {
-            channels.push(<Channel key={i} channel={channelInfo.channels[i]} onChannelClick={onChannelClick}/>)
-        }
-        // @ts-ignore
+        // Remove all channelsAudio
+        const channels = channelInfo.channels.map((channel, index) => (
+            <Channel key={index} channel={channel} onChannelClick={onChannelClick} />
+        ));
         setChannels(channels);
-    }, [channelInfo]);
+    }, [channelInfo.channels]);
 
     return (
         <Accordion>
@@ -43,7 +58,5 @@ export function AudioStream() {
                 {audioChannels}
             </AccordionBody>
         </Accordion>
-
-    )
+    );
 }
-

@@ -34,16 +34,21 @@ const TabsSection = memo(({ section, renderConfig, stack, configMistake }) => (
 
 const SectionAccordion = memo(({ section, renderConfig, stack, configMistake }) => (
     <AccordionList>
-        {section.questions && Object.entries(section.questions).map(([key, value]) => (
-            <Accordion key={key}>
-                <AccordionHeader>{value.title}</AccordionHeader>
-                <AccordionBody>
-                    {renderConfig(value, [...stack, 'questions'], key, configMistake)}
-                </AccordionBody>
-            </Accordion>
-        ))}
+        {section.questions &&
+            // Sort the questions based on their order of appearance
+            Object.entries(section.questions)
+                .sort(([, questionA], [, questionB]) => questionA.title - questionB.title)
+                .map(([key, value]) => (
+                    <Accordion key={key}>
+                        <AccordionHeader>{value.title}</AccordionHeader>
+                        <AccordionBody>
+                            {renderConfig(value, [...stack, 'questions'], key, configMistake)}
+                        </AccordionBody>
+                    </Accordion>
+                ))}
     </AccordionList>
 ));
+
 
 const BodySection = memo(({ section, renderConfig, stack, configMistake }) => (
     <>
@@ -104,6 +109,28 @@ const NumberInputField = memo(({ section, stack, updateConfig, configMistake }) 
     );
 });
 
+const StringInputField = memo(({ section, stack, updateConfig, configMistake }) => {
+    const [value, setValue] = useState(section.value);
+
+    const handleChange = (e) => {
+        setValue(e.target.value);
+        updateConfig(stack, e.target.value);
+    };
+
+    useEffect(() => {
+        setValue(section.value);
+    }, [section.value]);
+
+    const isMistake = stack[stack.length - 1] === configMistake;
+
+    return (
+        <>
+            <label>{section.title}</label>
+            <TextInput error={isMistake} value={value} onChange={handleChange} />
+        </>
+    );
+});
+
 const RenderConfig = ({ section, stack, updateConfig, configMistake }) => {
     const renderConfig = useCallback((section, stack, stackKey, configMistake) => {
         const newStack = [...stack, stackKey];
@@ -112,6 +139,7 @@ const RenderConfig = ({ section, stack, updateConfig, configMistake }) => {
             case 'tabs':
                 return <TabsSection section={section} renderConfig={renderConfig} stack={newStack} configMistake={configMistake} />;
             case 'section':
+                console.log('section', section);
                 return <SectionAccordion section={section} renderConfig={renderConfig} stack={newStack} configMistake={configMistake} />;
             case 'body':
                 return <BodySection section={section} renderConfig={renderConfig} stack={newStack} configMistake={configMistake} />;
@@ -120,7 +148,7 @@ const RenderConfig = ({ section, stack, updateConfig, configMistake }) => {
             case 'number':
                 return <NumberInputField section={section} stack={newStack} updateConfig={updateConfig} configMistake={configMistake} />;
             case 'string':
-                return <TextInput label={section.title} value={section.value} onChange={(e) => updateConfig(newStack, e.target.value)} />;
+                return <StringInputField section={section} stack={newStack} updateConfig={updateConfig} configMistake={configMistake} />;
             default:
                 return null;
         }

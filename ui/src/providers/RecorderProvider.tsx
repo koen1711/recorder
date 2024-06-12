@@ -26,8 +26,8 @@ export const RecorderProvider = ({ children }) => {
     React.useEffect(() => {
         if (webSocketVal) {
             const json = JSON.parse(webSocketVal);
-            console.log(json.type);
             if (json.type === 'audio-channels') {
+                console.log(json);
                 setChannelInfo(json);
             } else if (json.type === 'recorder-selected') {
                 send(JSON.stringify({type: 'command', command: 'query-channels'}));

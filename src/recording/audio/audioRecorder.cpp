@@ -8,8 +8,11 @@
 #include <nlohmann/json.hpp>
 #include <pulse/pulseaudio.h>
 
+// Other necessary global variables and structs
 BaseRecorder* recorder = nullptr;
 uWS::App* pGlobalApp = nullptr;
+uWS::Loop* pGlobalLoop = nullptr;
+ma_encoder callbackEncoder{};
 
 std::vector<ma_format> supportedFormats = {
         ma_format_u8,
@@ -56,17 +59,21 @@ std::vector<ma_channel> supportedChannels = {
         MA_CHANNEL_AUX_25
 };
 
+uWS::HttpResponse<true>* listener = nullptr;
+Channel listeningChannel = {};
+
 int channelCount = 32;
 ma_format outputFormat = ma_format_f32;
 std::vector<float> decibel(channelCount, 0.0f);
 RecordingInfo* recordingInfo = new RecordingInfo{};
 
+// make a timestamp since the last message was sent
+std::chrono::time_point<std::chrono::system_clock> lastMessageTime = std::chrono::system_clock::now();
+
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     EncoderArray* pEncoders = (EncoderArray*)pDevice->pUserData;
     MA_ASSERT(pEncoders != NULL);
-
-
 
     std::vector<void*> pChannelData(channelCount);
 
@@ -111,6 +118,11 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
         }
     }
 
+    if (listener != nullptr) {
+        ma_encoder_write_pcm_frames(&callbackEncoder, pChannelData[listeningChannel.index], frameCount, NULL);
+    }
+
+
     for (int ch = 0; ch < channelCount; ++ch) {
         if (recordingInfo->isRecording) {
             ma_encoder_write_pcm_frames(&pEncoders->encoders[ch], pChannelData[ch], frameCount, NULL);
@@ -121,10 +133,18 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
         decibel[ch] = 10 * log10(sqrt(decibel[ch] / frameCount));
     }
 
+    if (lastMessageTime + std::chrono::milliseconds(500) < std::chrono::system_clock::now()) {
+        lastMessageTime = std::chrono::system_clock::now();
+        if (recorder == nullptr) return;
+        nlohmann::json j = recorder->queryInformation();
+        pGlobalLoop->defer([j = std::move(j)]() {
+            pGlobalApp->publish("recorder-info", j.dump(), uWS::OpCode::TEXT);
+        });
+    }
     (void)pOutput;
-    if (recorder == nullptr) return;
-    nlohmann::json j = recorder->queryInformation();
-    pGlobalApp->publish("recorder-info", j.dump(), uWS::OpCode::TEXT);}
+}
+
+
 
 int AudioRecorder::init() {
     if (channels.empty()) {
@@ -147,6 +167,7 @@ int AudioRecorder::init() {
     }
 
     deviceConfig = ma_device_config_init(ma_device_type_capture);
+    deviceConfig.periodSizeInMilliseconds = 1;
     deviceConfig.capture.format = outputFormat;
     deviceConfig.capture.channels = channelCount;
     deviceConfig.sampleRate = encoderConfig.sampleRate; // Ensure the sample rate matches the encoder
@@ -173,7 +194,6 @@ int AudioRecorder::init() {
 int AudioRecorder::startRecording() {
     std::vector<int> initializedEncoders = {};
     for (int i = 0; i < channelCount; ++i) {
-        std::cout << "Channel: " << i << std::endl;
         std::string fileName = filePrefix + std::to_string(i) + ".wav";
         if (ma_encoder_init_file(fileName.c_str(), &encoderConfig, &encoders.encoders[i]) != MA_SUCCESS) {
             printf("Failed to initialize output file for channel %d.\n", i);
@@ -274,7 +294,7 @@ nlohmann::json AudioRecorder::queryConfiguration() {
                 {"title", channel.index},
                 {"type", "body"},
                 {"questions", {
-                                  {"channelName", {
+                                  {"channelName-" + std::to_string(i), {
                                                           {"type", "string"},
                                                           {"title", "Name channel "},
                                                           {"value", channel.name}
@@ -307,6 +327,27 @@ int AudioRecorder::configure(nlohmann::json config) {
         channelCount = tempChannelCount;
         this->deinit();
         this->init();
+    } else {
+        for (int i = 0; i < channelCount; ++i) {
+            std::string channelKey = "channelName-" + std::to_string(i);
+            if (config.contains(channelKey)) {
+                channels[i].name = config[channelKey];
+
+                nlohmann::json j;
+                j["type"] = "audio-channels";
+                for (int i = 0; i < channelCount; ++i) {
+                    j["channels"][i]["name"] = channels[i].name;
+                    j["channels"][i]["index"] = channels[i].index;
+                    j["channels"][i]["stereoLink"] = channels[i].stereoLink;
+                    j["channels"][i]["isLeft"] = channels[i].isLeft;
+                }
+                pGlobalLoop->defer([j = std::move(j)]() {
+                    pGlobalApp->publish("recorder-info", j.dump(), uWS::OpCode::TEXT);
+                });
+            }
+        }
+
+
     }
     return 0;
 }
@@ -326,7 +367,100 @@ nlohmann::json AudioRecorder::sendCommand(nlohmann::json command) {
     }
 }
 
-AudioRecorder::AudioRecorder(uWS::App *app) : BaseRecorder(app) {
+#pragma pack(push, 1) // exact fit - align at byte-boundary, no padding
+
+typedef struct wavHeader
+{
+    uint8_t chunckID[4];
+    uint32_t chunckSize;
+    uint8_t format[4];
+    uint8_t subchunk1ID[4];
+    uint32_t subchunk1Size;
+    uint16_t audioFormat;
+    uint16_t numChannels;
+    uint32_t sampleRate;
+    uint32_t byteRate;
+    uint16_t blockAlign;
+    uint16_t bitsPerSample;
+    uint8_t subchunk2ID[4];
+    uint32_t subchunk2Size;
+} wavHeader;
+
+#pragma pack(pop)
+
+void onWrite(ma_encoder* pEncoder, const void* pBufferIn, size_t bytesToWrite, size_t* pBytesWritten) {
+    auto* res = (uWS::HttpResponse<true>*)pEncoder->pUserData;
+    std::string buffer(reinterpret_cast<const char*>(pBufferIn), bytesToWrite);
+    pGlobalLoop->defer([res, buffer = std::move(buffer)]() {
+        res->write(buffer);
+    });
+    *pBytesWritten = bytesToWrite;
+}
+
+void onSeek(ma_encoder* pEncoder, ma_int64 offset, ma_seek_origin origin) {
+    // Do nothing
+}
+
+bool AudioRecorder::registerListener(uWS::HttpResponse<true> *res, uWS::HttpRequest *req) {
+    if (listener != nullptr) {
+        res->writeStatus("400 Bad Request");
+        res->end("Listener already exists");
+        return false;
+    }
+    wavHeader header = {
+            {'R', 'I', 'F', 'F'},
+            0,
+            {'W', 'A', 'V', 'E'},
+            {'f', 'm', 't', ' '},
+            16,
+            0x0003,
+            1,
+            48000,
+            static_cast<uint32_t>(48000 * (ma_get_bytes_per_sample(outputFormat) * 8) * 1 / 8),
+            static_cast<uint16_t>(ma_get_bytes_per_sample(outputFormat) * 8),
+            static_cast<uint16_t>(ma_get_bytes_per_sample(outputFormat) * 8),
+            {'d', 'a', 't', 'a'},
+            0
+    };
+    std::string headerStr(reinterpret_cast<char*>(&header), sizeof(header));
+    pGlobalLoop->defer([res, headerStr = std::move(headerStr)]() {
+        res->write(headerStr);
+    });
+    // wait for 500 ms
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    listener = res;
+    // from the request, get the channel index
+    std::string_view channelIndex = req->getQuery("channel");
+    if (channelIndex.empty()) {
+        std::cout << "No channel index provided" << std::endl;
+        return false;
+    }
+    int index = std::stoi(std::string(channelIndex));
+    std::cout << "Registering listener for channel " << index << std::endl;
+    listeningChannel = channels[index];
+
+    callbackEncoder = {};
+    // give the res to the encoder
+    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, outputFormat, 1, 48000);
+    void* pUserData = res;
+    result = ma_encoder_init(reinterpret_cast<ma_encoder_write_proc>(onWrite),
+                             reinterpret_cast<ma_encoder_seek_proc>(onSeek), pUserData, &encoderConfig, &callbackEncoder);
+    if (result != MA_SUCCESS) {
+        printf("Failed to initialize encoder.\n");
+        return false;
+    }
+
+
+    res->onAborted([](){
+        // remove the listener from the list at the index
+        listener = nullptr;
+        listeningChannel = {};
+    });
+    return true;
+}
+
+AudioRecorder::AudioRecorder(uWS::App *app, uWS::Loop *loop) : BaseRecorder(app, loop) {
     recorder = this;
     pGlobalApp = app;
+    pGlobalLoop = loop;
 }

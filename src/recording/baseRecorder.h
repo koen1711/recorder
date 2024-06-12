@@ -16,7 +16,7 @@ public:
 
     virtual std::string getName() = 0;
 
-    explicit BaseRecorder(uWS::App* app) {};
+    explicit BaseRecorder(uWS::App *app, uWS::Loop* loop) {};
     virtual int init() = 0;
     virtual int deinit() = 0;
     virtual int startRecording() = 0;
@@ -27,6 +27,8 @@ public:
     virtual int configure(nlohmann::json config) = 0;
 
     virtual nlohmann::json sendCommand(nlohmann::json command) = 0;
+
+    virtual bool registerListener(uWS::HttpResponse<true> *res, uWS::HttpRequest *req) = 0;
 
 
 };

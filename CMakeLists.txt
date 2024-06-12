@@ -17,6 +17,9 @@ set(USOCKETS_LIB_PATH /usr/local/lib/uSockets.a)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PULSEAUDIO REQUIRED libpulse)
 
+# Add AddressSanitizer flags
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -fsanitize=address -fno-omit-frame-pointer")
+
 # Add the executable
 add_executable(${PROJECT_NAME}
         src/main.cpp

@@ -4,5 +4,6 @@
 #include <uWebSockets/App.h>
 
 uWS::App* pApp = new uWS::App();
+uWS::Loop* pLoop = uWS::Loop::get();
 
 #endif //AUDIORECORDER_APP_H

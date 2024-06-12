@@ -7,7 +7,7 @@
 #include "../dashboard/app.h"
 
 std::vector<BaseRecorder*> recorders = {
-        (BaseRecorder*) new AudioRecorder(pApp)
+        (BaseRecorder*) new AudioRecorder(pApp, pLoop)
 };
 
 #endif //AUDIORECORDER_RECORDERS_H

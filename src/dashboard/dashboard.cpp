@@ -121,8 +121,6 @@ void publishDeviceInformation(bool newInfo = false) {
 
     previousDeviceInformation = currentDeviceInformation;
 
-    std::cout << j.dump() << std::endl;
-
     pApp->publish("device-info", j.dump(), uWS::OpCode::TEXT);
 }
 
@@ -133,8 +131,7 @@ void Dashboard::startServer() {
     GlobalCpuInfo::init();
     ProcessCpuInfo::init();
 
-
-    pApp->get("/", [](auto *res, auto *req) {
+    pApp->get("/auth", [](auto *res, auto *req) {
         // return the html content of /index.html
         serveFile(res, req);
         // get content of /index.html
@@ -148,6 +145,42 @@ void Dashboard::startServer() {
             file.close();
         }
         res->end(content);
+    });
+
+
+    pApp->get("/", [](auto *res, auto *req) {
+        // if a code param is present, rederict to /auth with the same param
+        if (req->getQuery().find("code") != std::string::npos) {
+            res->writeStatus("302 Found");
+            res->writeHeader("Location", std::string("/auth?") + std::string(req->getQuery()));
+            res->end();
+            return;
+        }
+        // return the html content of /index.html
+        serveFile(res, req);
+        // get content of /index.html
+        std::string content = "";
+        std::ifstream file("ui/index.html");
+        if (file.is_open()) {
+            std::string line;
+            while (getline(file, line)) {
+                content += line;
+            }
+            file.close();
+        }
+        res->end(content);
+    });
+
+    pApp->get("/audiostream", [](auto *res, auto *req) {
+
+
+        bool re = selectedRecorder->registerListener(reinterpret_cast<uWS::HttpResponse<true> *>(res), req);
+        if (re) {
+            res->writeStatus(uWS::HTTP_200_OK);
+            res->writeHeader("Content-Type", "audio/x-wav");
+            res->writeHeader("Connection", "keep-alive");
+            res->writeHeader("Cache-Control", "no-cache");
+        }
     });
 
 
@@ -297,14 +330,14 @@ void Dashboard::startServer() {
     });
 
 
-    struct us_loop_t *loop = (struct us_loop_t *) uWS::Loop::get();
+    struct us_loop_t *loop = (struct us_loop_t *) pLoop;
     struct us_timer_t *delayTimer = us_create_timer(loop, 0, 0);
 
 
 
     us_timer_set(delayTimer, [](struct us_timer_t *timer) {
         publishDeviceInformation();
-    }, 500, 500);
+    }, 1000, 1000);
 
 
     pApp->run();

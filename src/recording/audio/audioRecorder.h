@@ -27,7 +27,7 @@ private:
     ma_device_config deviceConfig{};
     ma_device device{};
 public:
-    explicit AudioRecorder(uWS::App *app);
+    explicit AudioRecorder(uWS::App *app, uWS::Loop *loop);
 
     std::string getName() override;
 
@@ -43,6 +43,8 @@ public:
     int configure(nlohmann::json config) override;
 
     nlohmann::json sendCommand(nlohmann::json command) override;
+
+    bool registerListener(uWS::HttpResponse<true> *res, uWS::HttpRequest *req) override;
 
 };
 

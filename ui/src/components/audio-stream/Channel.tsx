@@ -8,9 +8,11 @@ import {useState} from "react";
 function Channel({ channel, onChannelClick }) {
     const [checked, setChecked] = useState(false);
     function clickChannel() {
-        if (onChannelClick(channel, !checked)) {
-            setChecked(!checked);
-        }
+        onChannelClick(channel, !checked).then((res: boolean) => {
+            if (res) {
+                setChecked(!checked);
+            }
+        });
     }
 
     return (
