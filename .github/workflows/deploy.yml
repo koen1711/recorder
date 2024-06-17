@@ -14,15 +14,15 @@ jobs:
 
     - name: "Install dependencies"
       run: >
+        git submodule init
+        git submodule update --recursive &&
+        sudo apt install libpulse-dev &&
         git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
         cd uWebSockets &&
         make &&
         sudo make install &&
         sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
-        sudo cp ./uSockets/uSockets.a /usr/local/lib &&
-        git submodule init &&
-        git submodule update --recursive &&
-        sudo apt install libpulse-dev
+        sudo cp ./uSockets/uSockets.a /usr/local/lib
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
