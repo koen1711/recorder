@@ -42,7 +42,7 @@ jobs:
     - name: Package build artifacts
       run: |
         mkdir -p release
-        cp ./build/ ./release/
+        cp -r ./build/ ./release/
         tar -czvf release.tar.gz release/*
         
     - name: Upload Release Asset
