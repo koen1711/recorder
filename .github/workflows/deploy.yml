@@ -41,9 +41,11 @@ jobs:
     
     - name: Package build artifacts
       run: |
+        rm -rf ./build/CMakeFiles ./build/cmake_install.cmake ./build/Makefile ./build/CMakeCache.txt ./build/libs ./build/CMakeFiles 
         mkdir -p release
-        cp -r ./build/ ./release/
-        tar -czvf release.tar.gz release/*
+        rm -rf ./build/CMakeFiles
+        cp ./build/* ./release/
+        find ./release -printf "%P\n" | tar -czf release.tar.gz --no-recursion -C ./release -T -
     - uses: shogo82148/actions-upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
