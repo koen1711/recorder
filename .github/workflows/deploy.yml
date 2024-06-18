@@ -11,6 +11,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20.x"
+        registry-url: "https://registry.npmjs.org"
+    - name: Setup node
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      run: |
+        export NODE_OPTIONS="--max-old-space-size=4096"
+        yarn --frozen-lockfile --prefer-offline
 
     - name: "Install dependencies"
       run: >
