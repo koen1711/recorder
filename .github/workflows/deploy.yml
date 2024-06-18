@@ -67,9 +67,7 @@ jobs:
     name: Build ARM64
     runs-on: ubuntu-latest
  
-    steps:
-      - uses: actions/checkout@v4
-      
+    steps:      
       - uses: pguyot/arm-runner-action@v2
         id: build_image
         with:
@@ -84,51 +82,37 @@ jobs:
              sudo cp -R * /usr/
              cd ..
              rm -rf node-v20.11.1-linux-arm64
-             
-      - name: Setup node
-        run: |
-          cd ui
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          sudo npm install -g vite
-          yarn --frozen-lockfile --prefer-offline
-  
-      - name: "Install dependencies"
-        run: >
-          git submodule init &&
-          git submodule update --recursive &&
-          sudo apt install libuv1-dev libpulse-dev &&
-          git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
-          cd uWebSockets &&
-          make all -j$(nproc) &&
-          sudo make install &&
-          sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
-          sudo cp ./uSockets/uSockets.a /usr/local/lib
-  
-      - name: Configure CMake
-        run: >
-          cmake -B ./build
-          -DCMAKE_CXX_COMPILER=g++
-          -DCMAKE_C_COMPILER=gcc
-          -DCMAKE_BUILD_TYPE=Release
-          -S ${{ github.workspace }}
-  
-      - name: Build
-        run: cmake --build ./build --config Release -- -j$(nproc)
-      
-      - name: Package build artifacts
-        run: |
-          cd build
-          rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
-          cd ui
-          rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
-          cd ../..
-          mkdir -p release
-          cp -r ./build/* ./release/
-          find ./release -printf "%P\n" | tar -czf release-aarch64.tar.gz --no-recursion -C ./release -T -
-          
-      - uses: shogo82148/actions-upload-release-asset@v1
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release-aarch64.tar.gz
-          asset_name: linux-release-aarch64.tar.gz
+             git clone https://github.com/koen1711/recorder.git
+             cd recorder
+             cd ui
+             export NODE_OPTIONS="--max-old-space-size=4096"
+             sudo npm install -g vite
+             yarn --frozen-lockfile --prefer-offline
+             cd ..
+             git submodule init
+             git submodule update --recursive
+             cd ..
+             sudo apt install libuv1-dev libpulse-dev
+             git clone --recurse-submodules https://github.com/uNetworking/uWebSockets
+             cd uWebSockets
+             make all -j$(nproc)
+             sudo make install
+             sudo cp ./uSockets/src/libusockets.h /usr/local/include
+             sudo cp ./uSockets/uSockets.a /usr/local/lib
+             cd ../recorder
+             cmake -B ./build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release -S ${{ github.workspace }}
+             cmake --build ./build --config Release -- -j$(nproc)
+             cd build
+             rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
+             cd ui
+             rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
+             cd ../..
+             mkdir -p release
+             cp -r ./build/* ./release/
+             find ./release -printf "%P\n" | tar -czf release-aarch64.tar.gz --no-recursion -C ./release -T -
+             curl -s -X POST \
+                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Content-Type: application/zip" \
+                --data-binary @./release-aarch64.tar.gz \
+                ${{ github.event.release.upload_url }}?name=linux-release-aarch64.tar.gz
 
