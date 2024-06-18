@@ -13,12 +13,16 @@ jobs:
         arch: [amd64, arm64]
         include:
           - arch: amd64
-            gcc: gcc
-            gxx: g++
           - arch: arm64
-            gcc: aarch64-linux-gnu-gcc
-            gxx: aarch64-linux-gnu-g++
+ 
     steps:
+    - uses: pguyot/arm-runner-action@v2
+      if: matrix.arch == 'arm64'
+      id: build_image
+      with:
+        base_image: raspios_lite:2022-04-04
+        commands: |
+            commands to build image
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
@@ -44,17 +48,11 @@ jobs:
         sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
         sudo cp ./uSockets/uSockets.a /usr/local/lib
 
-    - name: Install cross-compilation tools for arm64
-      if: matrix.arch == 'arm64'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
     - name: Configure CMake
       run: >
         cmake -B ./build
-        -DCMAKE_CXX_COMPILER=${{ matrix.gxx }}
-        -DCMAKE_C_COMPILER=${{ matrix.gcc }}
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_C_COMPILER=gcc
         -DCMAKE_BUILD_TYPE=Release
         -S ${{ github.workspace }}
 
