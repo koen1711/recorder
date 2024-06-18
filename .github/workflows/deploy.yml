@@ -48,7 +48,7 @@ jobs:
         sudo apt install libuv1-dev &&
         git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
         cd uWebSockets &&
-        make &&
+        make all -j$(nproc) &&
         sudo make install &&
         sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
         sudo cp ./uSockets/uSockets.a /usr/local/lib
