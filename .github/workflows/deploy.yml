@@ -20,7 +20,7 @@ jobs:
       if: matrix.arch == 'arm64'
       id: build_image
       with:
-        base_image: raspios_lite:2022-04-04
+        base_image: dietpi:rpi_armv8_bullseye
         image_additional_mb: 10240
         commands: |
            sudo apt update && sudo apt install git ruby -y
