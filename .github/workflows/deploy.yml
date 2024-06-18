@@ -20,6 +20,7 @@ jobs:
         SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       run: |
         export NODE_OPTIONS="--max-old-space-size=4096"
+        sudo npm install -g vite
         yarn --frozen-lockfile --prefer-offline
 
     - name: "Install dependencies"
