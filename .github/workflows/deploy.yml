@@ -41,16 +41,16 @@ jobs:
         yarn --frozen-lockfile --prefer-offline
 
     - name: "Install dependencies"
-      run: |
-        git submodule init
-        git submodule update --recursive
-        sudo apt install libpulse-dev
-        sudo apt install libuv1-dev
-        git clone --recurse-submodules https://github.com/uNetworking/uWebSockets
-        cd uWebSockets
-        make
-        sudo make install
-        sudo cp ./uSockets/src/libusockets.h /usr/local/include
+      run: >
+        git submodule init &&
+        git submodule update --recursive &&
+        sudo apt install libpulse-dev &&
+        sudo apt install libuv1-dev &&
+        git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
+        cd uWebSockets &&
+        make &&
+        sudo make install &&
+        sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
         sudo cp ./uSockets/uSockets.a /usr/local/lib
 
     - name: Configure CMake
