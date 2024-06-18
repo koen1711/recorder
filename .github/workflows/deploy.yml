@@ -4,9 +4,9 @@ on:
   release:
     types:
       - created
-
 jobs:
-  build:
+  buildx64:
+    name: Build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,8 +18,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 20.x
+          
+      - name: Setup node
+        run: |
+          cd ui
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          sudo npm install -g vite
+          yarn --frozen-lockfile --prefer-offline
+  
+      - name: "Install dependencies"
+        run: >
+          git submodule init &&
+          git submodule update --recursive &&
+          sudo apt install libuv1-dev libpulse-dev &&
+          git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
+          cd uWebSockets &&
+          make all -j$(nproc) &&
+          sudo make install &&
+          sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
+          sudo cp ./uSockets/uSockets.a /usr/local/lib
+  
+      - name: Configure CMake
+        run: >
+          cmake -B ./build
+          -DCMAKE_CXX_COMPILER=g++
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_BUILD_TYPE=Release
+          -S ${{ github.workspace }}
+  
+      - name: Build
+        run: cmake --build ./build --config Release -- -j$(nproc)
+      
+      - name: Package build artifacts
+        run: |
+          cd build
+          rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
+          cd ui
+          rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
+          cd ../..
+          mkdir -p release
+          cp -r ./build/* ./release/
+          find ./release -printf "%P\n" | tar -czf release-${{ matrix.arch }}.tar.gz --no-recursion -C ./release -T -
+          
+      - uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release-${{ matrix.arch }}.tar.gz
+          asset_name: linux-release-${{ matrix.arch }}.tar.gz
+          
+  build-arm64:
+    name: Build ARM64
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - uses: actions/checkout@v4
+      
       - uses: pguyot/arm-runner-action@v2
-        if: matrix.arch == 'arm64'
         id: build_image
         with:
           base_image: dietpi:rpi_armv8_bullseye
@@ -80,3 +138,4 @@ jobs:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ./release-${{ matrix.arch }}.tar.gz
           asset_name: linux-release-${{ matrix.arch }}.tar.gz
+
