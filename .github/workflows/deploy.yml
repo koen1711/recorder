@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -22,7 +22,12 @@ jobs:
       with:
         base_image: raspios_lite:2022-04-04
         commands: |
-            commands to build image
+           sudo apt update && sudo apt install git ruby -y
+           wget https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-arm64.tar.xz
+           tar -xf node-v20.11.1-linux-arm64.tar.xz
+           cd node-v20.11.1-linux-arm64
+           sudo cp -R * /usr/
+           
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
@@ -36,16 +41,16 @@ jobs:
         yarn --frozen-lockfile --prefer-offline
 
     - name: "Install dependencies"
-      run: >
-        git submodule init &&
-        git submodule update --recursive &&
-        sudo apt install libpulse-dev &&
-        sudo apt install libuv1-dev &&
-        git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
-        cd uWebSockets &&
-        make &&
-        sudo make install &&
-        sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
+      run: |
+        git submodule init
+        git submodule update --recursive
+        sudo apt install libpulse-dev
+        sudo apt install libuv1-dev
+        git clone --recurse-submodules https://github.com/uNetworking/uWebSockets
+        cd uWebSockets
+        make
+        sudo make install
+        sudo cp ./uSockets/src/libusockets.h /usr/local/include
         sudo cp ./uSockets/uSockets.a /usr/local/lib
 
     - name: Configure CMake
