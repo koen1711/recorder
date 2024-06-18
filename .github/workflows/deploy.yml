@@ -8,7 +8,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            gcc: gcc
+            gxx: g++
+          - arch: arm64
+            gcc: aarch64-linux-gnu-gcc
+            gxx: aarch64-linux-gnu-g++
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -35,19 +44,22 @@ jobs:
         sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
         sudo cp ./uSockets/uSockets.a /usr/local/lib
 
+    - name: Install cross-compilation tools for arm64
+      if: matrix.arch == 'arm64'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
         cmake -B ./build
-        -DCMAKE_CXX_COMPILER=g++
-        -DCMAKE_C_COMPILER=gcc
+        -DCMAKE_CXX_COMPILER=${{ matrix.gxx }}
+        -DCMAKE_C_COMPILER=${{ matrix.gcc }}
         -DCMAKE_BUILD_TYPE=Release
         -S ${{ github.workspace }}
 
     - name: Build
-      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ./build --config Release
+      run: cmake --build ./build --config Release -- -j$(nproc)
     
     - name: Package build artifacts
       run: |
@@ -56,14 +68,12 @@ jobs:
         cd ui
         rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
         cd ../..
-        mkdir -p release
+        mkdir -p release/${{ matrix.arch }}
         rm -rf ./build/CMakeFiles
-        cp -r ./build/* ./release/ 
-        find ./release -printf "%P\n" | tar -czf release.tar.gz --no-recursion -C ./release -T -
+        cp -r ./build/* ./release/${{ matrix.arch }}/
+        find ./release/${{ matrix.arch }} -printf "%P\n" | tar -czf release-${{ matrix.arch }}.tar.gz --no-recursion -C ./release/${{ matrix.arch }} -T -
     - uses: shogo82148/actions-upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./release.tar.gz
-        asset_name: linux-release.tar.gz
-      
-          
+        asset_path: ./release-${{ matrix.arch }}.tar.gz
+        asset_name: linux-release-${{ matrix.arch }}.tar.gz
