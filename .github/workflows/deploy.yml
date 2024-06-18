@@ -47,8 +47,7 @@ jobs:
       run: >
         git submodule init &&
         git submodule update --recursive &&
-        sudo apt install libpulse-dev &&
-        sudo apt install libuv1-dev &&
+        sudo apt install libuv1-dev libpulse-dev &&
         git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
         cd uWebSockets &&
         make all -j$(nproc) &&
