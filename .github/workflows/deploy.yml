@@ -30,7 +30,7 @@ jobs:
            cd node-v20.11.1-linux-arm64
            sudo cp -R * /usr/
            cd ..
-           rm node-v20.11.1-linux-arm64
+           rm -rf node-v20.11.1-linux-arm64
            
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
