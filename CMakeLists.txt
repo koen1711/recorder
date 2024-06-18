@@ -7,9 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(libs/json)
 add_subdirectory(ui)
 
-# If libuv is not found automatically, specify its include and library directories
-set(LIBUV_LIBRARY /lib/x86_64-linux-gnu/libuv_a.a)
-
 # Specify the path to uSockets.a
 set(USOCKETS_LIB_PATH /usr/local/lib/uSockets.a)
 
@@ -44,7 +41,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Link against required libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC
         nlohmann_json::nlohmann_json
-        ${LIBUV_LIBRARY}
+        uv_a
         ${USOCKETS_LIB_PATH}
         pthread
         ${PULSEAUDIO_LIBRARIES}
