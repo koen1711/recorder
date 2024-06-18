@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [x64, arm64]
         include:
-          - arch: amd64
+          - arch: x64
           - arch: arm64
  
     steps:
