@@ -29,6 +29,7 @@ jobs:
            rm node-v20.11.1-linux-arm64.tar.xz
            cd node-v20.11.1-linux-arm64
            sudo cp -R * /usr/
+           cd ..
            rm node-v20.11.1-linux-arm64
            
     - uses: actions/checkout@v4
