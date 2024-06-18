@@ -99,7 +99,7 @@ jobs:
              sudo cp ./uSockets/src/libusockets.h /usr/local/include
              sudo cp ./uSockets/uSockets.a /usr/local/lib
              cd ../recorder
-             cmake -B ./build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release -S ${{ github.workspace }}
+             cmake -B ./build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release
              cmake --build ./build --config Release -- -j$(nproc)
              cd build
              rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
