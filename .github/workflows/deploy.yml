@@ -51,7 +51,11 @@ jobs:
     
     - name: Package build artifacts
       run: |
-        rm -rf ./build/CMakeFiles ./build/cmake_install.cmake ./build/Makefile ./build/CMakeCache.txt ./build/libs ./build/CMakeFiles 
+        cd build
+        rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
+        cd ui
+        rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
+        cd ../..
         mkdir -p release
         rm -rf ./build/CMakeFiles
         cp -r ./build/* ./release/ 
