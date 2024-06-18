@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(libs/json)
 add_subdirectory(ui)
 
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+find_library(UV_A NAMES uv_a uv PATHS /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /lib/aarch64-linux-gnu)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+
 # Specify the path to uSockets.a
 set(USOCKETS_LIB_PATH /usr/local/lib/uSockets.a)
 
@@ -41,7 +45,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Link against required libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC
         nlohmann_json::nlohmann_json
-        uv_a
+        ${UV_A}
         ${USOCKETS_LIB_PATH}
         pthread
         ${PULSEAUDIO_LIBRARIES}
