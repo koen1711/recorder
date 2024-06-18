@@ -74,7 +74,7 @@ jobs:
           base_image: dietpi:rpi_armv8_bullseye
           image_additional_mb: 10240
           commands: |
-             sudo apt update && sudo apt install git xz-utils libuv1-dev libpulse-dev build-essential -y
+             sudo apt update && sudo apt install git xz-utils libuv1-dev libpulse-dev cmake build-essential -y
              wget https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-arm64.tar.xz -q
              tar -xf node-v20.11.1-linux-arm64.tar.xz
              rm node-v20.11.1-linux-arm64.tar.xz
