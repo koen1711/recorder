@@ -74,7 +74,7 @@ jobs:
           base_image: dietpi:rpi_armv8_bullseye
           image_additional_mb: 10240
           commands: |
-             sudo apt update && sudo apt install git xz-utils -y
+             sudo apt update && sudo apt install git xz-utils libuv1-dev libpulse-dev -y
              wget https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-arm64.tar.xz -q
              tar -xf node-v20.11.1-linux-arm64.tar.xz
              rm node-v20.11.1-linux-arm64.tar.xz
@@ -86,13 +86,12 @@ jobs:
              cd recorder
              cd ui
              export NODE_OPTIONS="--max-old-space-size=4096"
-             sudo npm install -g vite
+             sudo npm install -g vite yarn
              yarn --frozen-lockfile --prefer-offline
              cd ..
              git submodule init
              git submodule update --recursive
              cd ..
-             sudo apt install libuv1-dev libpulse-dev
              git clone --recurse-submodules https://github.com/uNetworking/uWebSockets
              cd uWebSockets
              make all -j$(nproc)
