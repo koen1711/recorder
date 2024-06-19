@@ -109,6 +109,8 @@ jobs:
              mkdir -p release
              cp -r ./build/* ./release/
              find ./release -printf "%P\n" | tar -czf release-aarch64.tar.gz --no-recursion -C ./release -T -
-             sudo ./.github/workflows/upload.sh github_api_token=${{ secrets.GITHUB_TOKEN }} owner=koen1711 repo=recorder tag=${{ github.event.release.tag_name }} filename=./linux-release-aarch64.tar.gz
+             mv ./linux-release-aarch64.tar.gz ./.github/workflows/
+             cd ./.github/workflows/
+             sudo ./upload.sh github_api_token=${{ secrets.GITHUB_TOKEN }} owner=koen1711 repo=recorder tag=${{ github.event.release.tag_name }} filename=./linux-release-aarch64.tar.gz
 
 
