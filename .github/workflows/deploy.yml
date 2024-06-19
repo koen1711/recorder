@@ -109,9 +109,6 @@ jobs:
              mkdir -p release
              cp -r ./build/* ./release/
              find ./release -printf "%P\n" | tar -czf release-aarch64.tar.gz --no-recursion -C ./release -T -
-             curl -s -X POST \
-                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                -H "Content-Type: application/zip" \
-                --data-binary @./release-aarch64.tar.gz \
-                ${{ github.event.release.upload_url }}?name=linux-release-aarch64.tar.gz
+             ./.github/workflows/upload.sh github_api_token=${{ secrets.GITHUB_TOKEN }} owner=koen1711 repo=recorder tag=${{ github.event.release.tag_name }} filename=./linux-release-aarch64.tar.gz
+
 
