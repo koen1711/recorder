@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+}
+
+.shadow-dark-tremor-dropdown {
+   z-index: 99;
+}
+
+.shadow-light-tremor-dropdown {
+   z-index: 99;
+}
+
+.channel-card:hover {
+    cursor: pointer;
+}
