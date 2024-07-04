@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(AudioRecorder)
+project(Recorder)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -33,6 +33,12 @@ add_executable(${PROJECT_NAME}
         src/dashboard/cpu/CpuInfo.h
         src/recording/recorders.h
         src/dashboard/app.h
+        include/sha512.h
+        src/dashboard/auth/auth.h
+        src/dashboard/auth/auth.cpp
+        src/dashboard/auth/auth.h
+        src/dashboard/auth/auth.cpp
+        src/dashboard/auth/auth.h
 )
 
 # Include directories
@@ -56,3 +62,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # Add dependency on ui target
 add_dependencies(${PROJECT_NAME} ui)
+
+file(GLOB MISC_FILES misc/*)
+file(COPY ${MISC_FILES} DESTINATION ${CMAKE_BINARY_DIR})

@@ -27,11 +27,13 @@ private:
     ma_device_config deviceConfig{};
     ma_device device{};
 public:
-    explicit AudioRecorder(uWS::App *app, uWS::Loop *loop);
+    explicit AudioRecorder(uWS::SSLApp *app, uWS::Loop *loop);
 
     std::string getName() override;
 
-    std::string filePrefix ="recording";
+    std::string filePrefix = "recording";
+    std::string recordingPathPrefix = "~/recordings/";
+    std::string recordingDirectory = "RECORDING";
 
     int init() override;
     int deinit() override;

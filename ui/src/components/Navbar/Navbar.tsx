@@ -3,10 +3,12 @@ import React from 'react';
 import {WebsocketContext} from "../../providers/WebsocketProvider.tsx";
 import {RecorderContext} from "../../providers/RecorderProvider.tsx";
 import {Config} from "./Config.tsx";
+import {PermissionContext} from "../../providers/PermissionProvider.tsx";
 
 
 export function Navbar() {
     const [, val, send] = React.useContext(WebsocketContext);
+    const [allowUnregisteredRecording,,allowUnregisteredConfig] = React.useContext(PermissionContext);
     // @ts-ignore
     const [isConfigOpen, setIsConfigOpen]: [boolean|null, (arg0: boolean|null) => void] = React.useState(false);
     const [returnConfig, setReturnConfig] = React.useState({});
@@ -40,15 +42,20 @@ export function Navbar() {
             setConfigMistake(json.error);
             setIsConfigOpen(true);
         } else if (json.type === 'recording-status') {
-            setRecording(json.recording);
-            setSelectedRecorder(json.selectedRecorder);
-            setRecorders(json);
+            if (json.recording) {
+                setRecording(true);
+            }
+            if (json.selectedRecorder !== undefined) {
+                setSelectedRecorder(json.selectedRecorder);
+            }
+            if (json.recorders !== undefined) {
+                setRecorders(json);
+            }
         }
 
     }, [val]);
 
     React.useEffect(() => {
-        console.log(isConfigOpen);
         if (isConfigOpen === true) {
             send(JSON.stringify({type: 'query-config'}));
         }
@@ -101,16 +108,16 @@ export function Navbar() {
     return (
         <div className={"flex items-center p-4 navbar"}>
             <h1>Remote Control Dashboard</h1>
-            <Select className={"w-1/12 mx-auto"} value={selectedRecorder} onValueChange={(val) => {setSelectedRecorder(val); send(JSON.stringify({type: 'select-recorder', recorder: val}));} }>
+            {recorders["recorders"] == null ? null : <Select className={"w-1/12 mx-auto"} value={selectedRecorder} onValueChange={(val) => {setSelectedRecorder(val); send(JSON.stringify({type: 'select-recorder', recorder: val}));} }>
                 {recorders["recorders"].map((recorder: string) => <SelectItem key={recorder} value={recorder}></SelectItem>)}
-            </Select>
+            </Select>}
 
-            <Button disabled={selectedRecorder == ""} className={"ml-4"}
+            <Button disabled={selectedRecorder == "" || !allowUnregisteredRecording} className={"ml-4"}
                     loading={recording == null}
                     color={recording ? "red" : "green"}
                     onClick={ () => handleRecordingChange()}
             >{recording ? "Recording" : (!recording ? "Start recording" : "Starting...")}</Button>
-            <Button disabled={selectedRecorder == ""} className={"ml-4"} onClick={() => setIsConfigOpen(true)}>Config</Button>
+            <Button disabled={selectedRecorder == "" || !allowUnregisteredConfig} className={"ml-4"} onClick={() => setIsConfigOpen(true)}>Config</Button>
 
             <style>
                 {/*    Align config-button on the right side of the nav bar */}

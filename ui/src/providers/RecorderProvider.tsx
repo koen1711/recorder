@@ -27,7 +27,6 @@ export const RecorderProvider = ({ children }) => {
         if (webSocketVal) {
             const json = JSON.parse(webSocketVal);
             if (json.type === 'audio-channels') {
-                console.log(json);
                 setChannelInfo(json);
             } else if (json.type === 'recorder-selected') {
                 send(JSON.stringify({type: 'command', command: 'query-channels'}));
