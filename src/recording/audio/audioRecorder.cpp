@@ -10,7 +10,7 @@
 
 // Other necessary global variables and structs
 BaseRecorder* recorder = nullptr;
-uWS::App* pGlobalApp = nullptr;
+uWS::SSLApp* pGlobalApp = nullptr;
 uWS::Loop* pGlobalLoop = nullptr;
 ma_encoder callbackEncoder{};
 
@@ -62,7 +62,7 @@ std::vector<ma_channel> supportedChannels = {
 uWS::HttpResponse<true>* listener = nullptr;
 Channel listeningChannel = {};
 
-int channelCount = 32;
+int channelCount = 2;
 ma_format outputFormat = ma_format_f32;
 std::vector<float> decibel(channelCount, 0.0f);
 RecordingInfo* recordingInfo = new RecordingInfo{};
@@ -137,8 +137,8 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
         lastMessageTime = std::chrono::system_clock::now();
         if (recorder == nullptr) return;
         nlohmann::json j = recorder->queryInformation();
-        pGlobalLoop->defer([j = std::move(j)]() {
-            pGlobalApp->publish("recorder-info", j.dump(), uWS::OpCode::TEXT);
+        pGlobalLoop->defer([j = std::move(j.dump())]() {
+            pGlobalApp->publish("recorder-info", j, uWS::OpCode::TEXT);
         });
     }
     (void)pOutput;
@@ -194,7 +194,20 @@ int AudioRecorder::init() {
 int AudioRecorder::startRecording() {
     std::vector<int> initializedEncoders = {};
     for (int i = 0; i < channelCount; ++i) {
-        std::string fileName = filePrefix + std::to_string(i) + ".wav";
+        // get the current time and date in this format: YYYY-MM-DD-HH-MM-SS
+        std::time_t t = std::time(nullptr);
+        std::tm tm = *std::localtime(&t);
+        std::string fileDir = recordingPathPrefix +
+                recordingDirectory + "-" +
+                std::to_string(tm.tm_year + 1900) + "-" +
+                std::to_string(tm.tm_mon + 1) +
+                "-" + std::to_string(tm.tm_mday) +
+                "-" + std::to_string(tm.tm_hour) +
+                ":" + std::to_string(tm.tm_min) +
+                ":" + std::to_string(tm.tm_sec) + "/";
+        // make the directory
+        std::filesystem::create_directories(fileDir);
+        std::string fileName = fileDir + filePrefix + std::to_string(i) + ".wav";
         if (ma_encoder_init_file(fileName.c_str(), &encoderConfig, &encoders.encoders[i]) != MA_SUCCESS) {
             printf("Failed to initialize output file for channel %d.\n", i);
             for (int j : initializedEncoders) {
@@ -256,6 +269,16 @@ nlohmann::json AudioRecorder::queryConfiguration() {
                             "title": "The format to save the audio recordings in",
                             "value": ""
                         },
+                        "recordingPathPrefix": {
+                            "type": "string",
+                            "title": "The prefix of the path to save the audio recordings to",
+                            "value": ""
+                        },
+                        "recordingDirectory": {
+                            "type": "string",
+                            "title": "The directory to save the audio recordings to",
+                            "value": ""
+                        },
                         "filePrefix": {
                             "type": "string",
                             "title": "The prefix of the file name to save the audio recordings to",
@@ -280,6 +303,8 @@ nlohmann::json AudioRecorder::queryConfiguration() {
     // Populate recording settings
     j["section"]["questions"]["recording"]["questions"]["audioFormat"]["value"] = ma_get_format_name(outputFormat);
     j["section"]["questions"]["recording"]["questions"]["filePrefix"]["value"] = filePrefix;
+    j["section"]["questions"]["recording"]["questions"]["recordingDirectory"]["value"]  = recordingDirectory;
+    j["section"]["questions"]["recording"]["questions"]["recordingPathPrefix"]["value"] = recordingPathPrefix;
     j["section"]["questions"]["recording"]["questions"]["channelCount"]["value"] = channelCount;
 
     for (auto format : supportedFormats) {
@@ -318,13 +343,24 @@ int AudioRecorder::configure(nlohmann::json config) {
         }
     } else if (config.contains("filePrefix")) {
         filePrefix = config["filePrefix"];
+    } else if (config.contains("recordingPathPrefix")) {
+        recordingPathPrefix = config["recordingPathPrefix"];
+    } else if (config.contains("recordingDirectory")) {
+        recordingDirectory = config["recordingDirectory"];
     } else if (config.contains("channelCount")) {
         int tempChannelCount = std::stoi(config["channelCount"].get<std::string>());
 
         if (!pa_channels_valid(tempChannelCount)) {
             return -1;
         }
+        channels.resize(channelCount);
+        // fill all the new channels with default values
+        for (int i = channelCount; i < tempChannelCount; ++i) {
+            channels.push_back(Channel{"C" + std::to_string(i), i});
+        }
         channelCount = tempChannelCount;
+        decibel.resize(channelCount, 0.0f);
+
         this->deinit();
         this->init();
     } else {
@@ -458,8 +494,16 @@ bool AudioRecorder::registerListener(uWS::HttpResponse<true> *res, uWS::HttpRequ
     });
     return true;
 }
+#include <pwd.h>
 
-AudioRecorder::AudioRecorder(uWS::App *app, uWS::Loop *loop) : BaseRecorder(app, loop) {
+
+AudioRecorder::AudioRecorder(uWS::SSLApp *app, uWS::Loop *loop) : BaseRecorder(app, loop) {
+    static auto whoAmI = [](){ struct passwd *tmp = getpwuid (geteuid ());
+        return tmp ? tmp->pw_name : "RECORDER";
+    };
+    std::string user = whoAmI();
+    recordingPathPrefix = "/home/" + user + "/recordings/";
+
     recorder = this;
     pGlobalApp = app;
     pGlobalLoop = loop;

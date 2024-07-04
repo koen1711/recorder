@@ -139,7 +139,6 @@ const RenderConfig = ({ section, stack, updateConfig, configMistake }) => {
             case 'tabs':
                 return <TabsSection section={section} renderConfig={renderConfig} stack={newStack} configMistake={configMistake} />;
             case 'section':
-                console.log('section', section);
                 return <SectionAccordion section={section} renderConfig={renderConfig} stack={newStack} configMistake={configMistake} />;
             case 'body':
                 return <BodySection section={section} renderConfig={renderConfig} stack={newStack} configMistake={configMistake} />;

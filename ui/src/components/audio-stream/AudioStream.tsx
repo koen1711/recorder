@@ -2,18 +2,19 @@ import React from 'react';
 import { Accordion, AccordionBody, AccordionHeader } from "@tremor/react";
 import Channel from "./Channel.tsx";
 import {RecorderContext} from "../../providers/RecorderProvider.tsx";
+import {PermissionContext} from "../../providers/PermissionProvider.tsx";
 
 export function AudioStream() {
     let selectedChannel = -1;
-    let curAudioElement = null;
+    let curAudioElement: HTMLAudioElement | null = null;
     const [, , , , channelInfo] = React.useContext(RecorderContext);
     const [audioChannels, setChannels] = React.useState([]);
+    const [, allowUnregisteredStreaming] = React.useContext(PermissionContext);
 
     async function onChannelClick(channel: {index: number}, selected: boolean) {
         if (selected && selectedChannel == -1) {
             selectedChannel = channel.index;
             //playAudioStream();
-            console.log("Playing audio stream");
             curAudioElement = document.createElement("audio");
             curAudioElement.onerror = () => {
                 selectedChannel = -1;
@@ -29,7 +30,6 @@ export function AudioStream() {
             }
             return true;
         } else if (!selected && selectedChannel == channel.index) {
-            console.log("Stopping audio stream");
             // delete the audio element
             // @ts-ignore
             curAudioElement.pause();
@@ -52,11 +52,12 @@ export function AudioStream() {
     }, [channelInfo.channels]);
 
     return (
-        <Accordion>
+        <Accordion hidden={!allowUnregisteredStreaming}>
             <AccordionHeader className={"text-center text-xl"}>Audio Stream</AccordionHeader>
             <AccordionBody className={"flex flex-wrap flex-row"}>
                 {audioChannels}
             </AccordionBody>
         </Accordion>
+
     );
 }

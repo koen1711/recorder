@@ -16,7 +16,7 @@ public:
 
     virtual std::string getName() = 0;
 
-    explicit BaseRecorder(uWS::App *app, uWS::Loop* loop) {};
+    explicit BaseRecorder(uWS::SSLApp *app, uWS::Loop* loop) {};
     virtual int init() = 0;
     virtual int deinit() = 0;
     virtual int startRecording() = 0;
