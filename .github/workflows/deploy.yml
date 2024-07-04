@@ -1,0 +1,116 @@
+name: Build application
+
+on:
+  release:
+    types:
+      - created
+jobs:
+  buildx64:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 20.x
+          
+      - name: Setup node
+        run: |
+          cd ui
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          sudo npm install -g vite
+          yarn --frozen-lockfile --prefer-offline
+  
+      - name: "Install dependencies"
+        run: >
+          git submodule init &&
+          git submodule update --recursive &&
+          sudo apt install libuv1-dev libpulse-dev &&
+          git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
+          cd uWebSockets &&
+          make all -j$(nproc) &&
+          sudo make install &&
+          sudo cp ./uSockets/src/libusockets.h /usr/local/include &&
+          sudo cp ./uSockets/uSockets.a /usr/local/lib
+  
+      - name: Configure CMake
+        run: >
+          cmake -B ./build
+          -DCMAKE_CXX_COMPILER=g++
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_BUILD_TYPE=Release
+          -S ${{ github.workspace }}
+  
+      - name: Build
+        run: cmake --build ./build --config Release -- -j$(nproc)
+      
+      - name: Package build artifacts
+        run: |
+          cd build
+          rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
+          cd ui
+          rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
+          cd ../..
+          mkdir -p release
+          cp -r ./build/* ./release/
+          find ./release -printf "%P\n" | tar -czf release-x64.tar.gz --no-recursion -C ./release -T -
+          
+      - uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release-x64.tar.gz
+          asset_name: linux-release-x64.tar.gz
+          
+  build-arm64:
+    name: Build ARM64
+    runs-on: ubuntu-latest
+ 
+    steps:      
+      - uses: pguyot/arm-runner-action@v2
+        id: build_image
+        with:
+          base_image: dietpi:rpi_armv8_bullseye
+          image_additional_mb: 10240
+          commands: |
+             sudo apt update && sudo apt install git xz-utils libuv1-dev libpulse-dev cmake build-essential -y
+             wget https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-arm64.tar.xz -q
+             tar -xf node-v20.11.1-linux-arm64.tar.xz
+             rm node-v20.11.1-linux-arm64.tar.xz
+             cd node-v20.11.1-linux-arm64
+             sudo cp -R * /usr/
+             cd ..
+             rm -rf node-v20.11.1-linux-arm64
+             git clone https://github.com/koen1711/recorder.git
+             cd recorder
+             cd ui
+             export NODE_OPTIONS="--max-old-space-size=4096"
+             sudo npm install -g vite yarn
+             yarn --frozen-lockfile --prefer-offline
+             cd ..
+             git submodule init
+             git submodule update --recursive
+             cd ..
+             git clone --recurse-submodules https://github.com/uNetworking/uWebSockets
+             cd uWebSockets
+             make all -j$(nproc)
+             sudo make install
+             sudo cp ./uSockets/src/libusockets.h /usr/local/include
+             sudo cp ./uSockets/uSockets.a /usr/local/lib
+             cd ../recorder
+             cmake -B ./build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release
+             cmake --build ./build --config Release -- -j$(nproc)
+             cd build
+             rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile ./CMakeCache.txt ./libs ./CMakeFiles 
+             cd ui
+             rm -rf ./CMakeFiles ./cmake_install.cmake ./Makefile
+             cd ../..
+             mkdir -p release
+             cp -r ./build/* ./release/
+             find ./release -printf "%P\n" | tar -czf linux-release-aarch64.tar.gz --no-recursion -C ./release -T -
+             mv ./linux-release-aarch64.tar.gz ./.github/workflows/
+             cd ./.github/workflows/
+             sudo ./upload.sh github_api_token=${{ secrets.GITHUB_TOKEN }} owner=koen1711 repo=recorder tag=${{ github.event.release.tag_name }} filename=./linux-release-aarch64.tar.gz
+
+
