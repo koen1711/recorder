@@ -30,7 +30,7 @@ jobs:
           sudo apt install libuv1-dev libpulse-dev &&
           wget https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.63.0.zip &&
           sudo apt-get install unzip &&
-          unzip uWebSockets-20.63.0.zip &&
+          unzip v20.63.0.zip &&
           mv uWebSockets-20.63.0 uWebSockets &&
           cd uWebSockets &&
           make all -j$(nproc) &&
@@ -97,7 +97,7 @@ jobs:
              cd ..
              wget https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.63.0.zip
              sudo apt-get install unzip
-             unzip uWebSockets-20.63.0.zip
+             unzip v20.63.0.zip
              mv uWebSockets-20.63.0 uWebSockets
              cd uWebSockets
              make all -j$(nproc)
