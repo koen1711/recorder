@@ -28,10 +28,7 @@ jobs:
           git submodule init &&
           git submodule update --recursive &&
           sudo apt install libuv1-dev libpulse-dev &&
-          wget https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.63.0.zip &&
-          sudo apt-get install unzip &&
-          unzip v20.63.0.zip &&
-          mv uWebSockets-20.63.0 uWebSockets &&
+          git clone --recurse-submodules https://github.com/uNetworking/uWebSockets &&
           cd uWebSockets &&
           make all -j$(nproc) &&
           sudo make install &&
@@ -95,10 +92,7 @@ jobs:
              git submodule init
              git submodule update --recursive
              cd ..
-             wget https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.63.0.zip
-             sudo apt-get install unzip
-             unzip v20.63.0.zip
-             mv uWebSockets-20.63.0 uWebSockets
+             git clone --recurse-submodules https://github.com/uNetworking/uWebSockets
              cd uWebSockets
              make all -j$(nproc)
              sudo make install
