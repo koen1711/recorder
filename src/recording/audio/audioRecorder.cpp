@@ -144,7 +144,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     (void)pOutput;
 }
 
-
+ma_context context;
 
 int AudioRecorder::init() {
     if (channels.empty()) {
@@ -153,13 +153,12 @@ int AudioRecorder::init() {
         }
     }
 
-    //encoders.encoders = (ma_encoder*)malloc(channelCount * sizeof(ma_encoder));
     encoders.encoders.resize(channelCount);
     for (int i = 0; i < channelCount; ++i) {
         encoders.encoders[i] = {};
     }
 
-    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, outputFormat, 1, 48000); // Ensure the sample rate is 96000
+    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, outputFormat, 1, 48000);
 
     ma_channel* channels = (ma_channel*)malloc(channelCount * sizeof(ma_channel));
     for (int i = 0; i < channelCount; ++i) {
@@ -170,20 +169,53 @@ int AudioRecorder::init() {
     deviceConfig.periodSizeInMilliseconds = 1;
     deviceConfig.capture.format = outputFormat;
     deviceConfig.capture.channels = channelCount;
-    deviceConfig.sampleRate = encoderConfig.sampleRate; // Ensure the sample rate matches the encoder
+    deviceConfig.sampleRate = encoderConfig.sampleRate;
     deviceConfig.dataCallback = data_callback;
     deviceConfig.capture.pChannelMap = channels;
     deviceConfig.pUserData = &encoders;
 
-    result = ma_device_init(NULL, &deviceConfig, &device);
+    // Enumerate devices
+    ma_device_info* pCaptureInfos;
+    ma_uint32 captureCount;
+
+
+    result = ma_context_get_devices(&context, NULL, NULL, &pCaptureInfos, &captureCount);
+    if (result != MA_SUCCESS) {
+        printf("Failed to enumerate devices.\n");
+        ma_context_uninit(&context);
+        return -4;
+    }
+
+    // Select a specific device (e.g., by name)
+    int selectedDeviceIndex = -1;
+
+    for (ma_uint32 i = 0; i < captureCount; ++i) {
+        if (strcmp(pCaptureInfos[i].name, recorderDeviceName.c_str()) == 0) {
+            selectedDeviceIndex = i;
+            break;
+        }
+    }
+
+    if (selectedDeviceIndex == -1) {
+        printf("Desired device not found.\n");
+        ma_context_uninit(&context);
+        return -5;
+    }
+
+    deviceConfig.capture.pDeviceID = &pCaptureInfos[selectedDeviceIndex].id;
+
+    result = ma_device_init(&context, &deviceConfig, &device);
     if (result != MA_SUCCESS) {
         printf("Failed to initialize capture device.\n");
+        ma_context_uninit(&context);
         return -1;
     }
+
 
     result = ma_device_start(&device);
     if (result != MA_SUCCESS) {
         ma_device_uninit(&device);
+        ma_context_uninit(&context);
         printf("Failed to start device.\n");
         return -2;
     }
@@ -264,6 +296,10 @@ nlohmann::json AudioRecorder::queryConfiguration() {
                     "title": "Recording Settings",
                     "type": "body",
                     "questions": {
+                        "recorderDeviceName": {
+                            "title": "Recording Device Name",
+                            "type": "select"
+                        },
                         "audioFormat": {
                             "type": "select",
                             "title": "The format to save the audio recordings in",
@@ -307,6 +343,22 @@ nlohmann::json AudioRecorder::queryConfiguration() {
     j["section"]["questions"]["recording"]["questions"]["recordingPathPrefix"]["value"] = recordingPathPrefix;
     j["section"]["questions"]["recording"]["questions"]["channelCount"]["value"] = channelCount;
 
+    // poplate recording device name
+    ma_device_info* pCaptureInfos;
+    ma_uint32 captureCount;
+    result = ma_context_get_devices(&context, NULL, NULL, &pCaptureInfos, &captureCount);
+    if (result != MA_SUCCESS) {
+        printf("Failed to enumerate devices.\n");
+        ma_context_uninit(&context);
+        return j;
+    }
+    j["section"]["questions"]["recording"]["questions"]["recorderDeviceName"]["options"] = {};
+    for (ma_uint32 i = 0; i < captureCount; ++i) {
+        j["section"]["questions"]["recording"]["questions"]["recorderDeviceName"]["options"][i] = pCaptureInfos[i].name;
+    }
+    j["section"]["questions"]["recording"]["questions"]["recorderDeviceName"]["value"] = recorderDeviceName;
+
+
     for (auto format : supportedFormats) {
         j["section"]["questions"]["recording"]["questions"]["audioFormat"]["options"][format] = ma_get_format_name(format);
     }
@@ -341,6 +393,10 @@ int AudioRecorder::configure(nlohmann::json config) {
                 break;
             }
         }
+    } else if (config.contains("recorderDeviceName")) {
+        recorderDeviceName = config["recorderDeviceName"];
+        this->deinit();
+        this->init();
     } else if (config.contains("filePrefix")) {
         filePrefix = config["filePrefix"];
     } else if (config.contains("recordingPathPrefix")) {
@@ -507,4 +563,16 @@ AudioRecorder::AudioRecorder(uWS::SSLApp *app, uWS::Loop *loop) : BaseRecorder(a
     recorder = this;
     pGlobalApp = app;
     pGlobalLoop = loop;
+
+    result = ma_context_init(NULL, 0, NULL, &context);
+    if (result != MA_SUCCESS) {
+        printf("Failed to initialize context.\n");
+    }
+    if (recorderDeviceName == "") {
+        ma_device_info* pCaptureInfos;
+        ma_uint32 captureCount;
+
+        result = ma_context_get_devices(&context, NULL, NULL, &pCaptureInfos, &captureCount);
+        recorderDeviceName = pCaptureInfos[0].name;
+    }
 }

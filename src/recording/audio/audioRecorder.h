@@ -26,6 +26,7 @@ private:
     EncoderArray encoders{};
     ma_device_config deviceConfig{};
     ma_device device{};
+    std::string recorderDeviceName;
 public:
     explicit AudioRecorder(uWS::SSLApp *app, uWS::Loop *loop);
 

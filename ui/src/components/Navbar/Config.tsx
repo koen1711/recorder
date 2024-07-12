@@ -62,6 +62,7 @@ const BodySection = memo(({ section, renderConfig, stack, configMistake }) => (
 
 const SelectInput = memo(({ section, stack, updateConfig, configMistake }) => {
     const [value, setValue] = useState(section.value);
+    console.log(section)
 
     const handleChange = (e) => {
         setValue(e);
@@ -131,6 +132,7 @@ const StringInputField = memo(({ section, stack, updateConfig, configMistake }) 
     );
 });
 
+// @ts-ignore
 const RenderConfig = ({ section, stack, updateConfig, configMistake }) => {
     const renderConfig = useCallback((section, stack, stackKey, configMistake) => {
         const newStack = [...stack, stackKey];
