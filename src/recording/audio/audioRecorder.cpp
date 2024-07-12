@@ -5,7 +5,7 @@
 #include <cmath> // For log10 and sqrt
 #include <vector>
 #include <string>
-#include <nlohmann/json.hpp>
+#include "json.hpp"
 #include <pulse/pulseaudio.h>
 
 // Other necessary global variables and structs

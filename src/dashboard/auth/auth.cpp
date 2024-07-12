@@ -1,6 +1,6 @@
 #include <fstream>
 #include "auth.h"
-#include "nlohmann/json.hpp"
+#include "json.hpp"
 
 bool checkAuth(uWS::HttpResponse<true> *res, uWS::HttpRequest *req, bool allowUnregisteredAccess, const std::string& redirect_uri, bool return403) {
     if (allowUnregisteredAccess) {

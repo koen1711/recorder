@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include "dashboard/dashboard.h"
-#include "nlohmann/json.hpp"
+#include "json.hpp"
 
 int main(int argc, char** argv)
 {

@@ -4,7 +4,6 @@ project(Recorder)
 set(CMAKE_CXX_STANDARD 17)
 
 # Add subdirectories
-add_subdirectory(libs/json)
 add_subdirectory(ui)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
@@ -44,13 +43,11 @@ add_executable(${PROJECT_NAME}
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
         include
-        libs/json/include
         ${PULSEAUDIO_INCLUDE_DIRS}
 )
 
 # Link against required libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC
-        nlohmann_json::nlohmann_json
         ${UV_A}
         ${USOCKETS_LIB_PATH}
         pthread

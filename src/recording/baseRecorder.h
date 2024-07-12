@@ -3,7 +3,7 @@
 
 #include <string>
 #include <uWebSockets/App.h>
-#include "nlohmann/json.hpp"
+#include "json.hpp"
 
 struct RecordingInfo {
     bool isRecording = false;
