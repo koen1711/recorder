@@ -34,7 +34,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=$USER
-ExecStart=$CURRENT_DIR/Recorder
+ExecStart=sh 'cd $CURRENT_DIR && ./Recorder'
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/$SERVICE_NAME.service
 
@@ -49,4 +49,4 @@ systemctl start $SERVICE_NAME
 
 # check the status of the service
 systemctl status $SERVICE_NAME
-```
+

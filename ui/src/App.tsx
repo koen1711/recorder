@@ -3,7 +3,7 @@ import { Navbar } from "./components/Navbar/Navbar.tsx";
 import {DeviceInfo} from "./components/device-info/DeviceInfo.tsx";
 import {AccordionList} from "@tremor/react";
 import React from "react";
-import {RecorderContext, RecorderProvider} from "./providers/RecorderProvider.tsx";
+import {RecorderContext} from "./providers/RecorderProvider.tsx";
 import {AudioInfo} from "./components/audio-info/AudioInfo.tsx";
 import {AudioStream} from "./components/audio-stream/AudioStream.tsx";
 import {Route, BrowserRouter as Router, Routes} from "react-router-dom";
